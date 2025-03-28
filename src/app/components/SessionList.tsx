@@ -1,7 +1,6 @@
 "use client";
 import React, {useEffect, useState} from 'react';
 import Image from 'next/image';
-// import {ScreenshotType} from '@/app/models/Screenshot';
 
 interface Session {
     sessionId: string;
@@ -44,13 +43,13 @@ const SessionList: React.FC<SessionListProps> = ({onSessionSelect}) => {
     return (
         <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-teal-500">Available Sessions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center">
                 {sessions.map((session) => (
                     <div key={session.sessionId}
-                         className="bg-gray-800 p-4 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700 transition duration-200"
+                         className="w-full max-w-md bg-gray-800 p-4 rounded-md border-2 border-teal-500 shadow-lg cursor-pointer hover:bg-gray-700 transition duration-200 mb-4"
                          onClick={() => onSessionSelect(session.sessionId)}
                     >
-                        <h3 className="text-xl font-semibold mb-2 text-teal-300">Session: {session.sessionId}</h3>
+                        <h3 className="text-xl font-semibold mb-2 text-teal-300 font-mono">Session: {session.sessionId}</h3>
                         <div className="flex overflow-x-auto py-2">
                             {session.screenshots.map((screenshot, index) => (
                                 <div key={index} className="mr-4 flex-shrink-0">
@@ -60,7 +59,7 @@ const SessionList: React.FC<SessionListProps> = ({onSessionSelect}) => {
                                         width={100}
                                         height={75}
                                         style={{objectFit: 'cover', borderRadius: '8px'}}
-                                        className="border border-gray-700 rounded-md"
+                                        className="border border-gray-700 rounded-md shadow-md"
                                     />
                                 </div>
                             ))}

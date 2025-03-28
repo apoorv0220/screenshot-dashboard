@@ -5,111 +5,66 @@ import Screenshot from '../../models/Screenshot';
 import { ScreenshotType } from '../../models/Screenshot';
 import { getServerSession } from "next-auth/next"
 import { getAuthOptions } from '../[...nextauth]/route';
-import axios from 'axios';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-const MODEL = "gpt-4o"
-
-// Define the content type for GPT-4o Vision API
-type GPT4VisionContent =
-    | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string; detail: "low" | "high" | "auto" } };
-
-// Define the message type for GPT-4o Vision API
-interface GPT4VisionMessage {
-    role: "system" | "user";
-    content: string | GPT4VisionContent[];
-}
-
-async function imageToBase64(imageUrl: string): Promise<string> {
-    try {
-        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-        const buffer = Buffer.from(response.data, 'binary');
-        return `data:image/png;base64,${buffer.toString('base64')}`;
-    } catch (error) {
-        console.error("Error converting image to base64:", error);
-        throw error;
-    }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: Request) {
-    const session = await getServerSession(getAuthOptions());
+    const session = await getServerSession(getAuthOptions())
 
     if (!session) {
-        return NextResponse.json({ screenshots: [], summary: "Unauthorized" }, { status: 401 });
+        return NextResponse.json({screenshots: [], summary: "Unauthorized"}, {status: 401});
     }
 
     try {
         await dbConnect();
 
-        const screenshots = await Screenshot.find({}).sort({ timestamp: 1 });
+        const {searchParams} = new URL(request.url);
+        const sessionId = searchParams.get('sessionId');
+
+        if (!sessionId) {
+            return NextResponse.json({screenshots: [], summary: 'No sessionId provided.'}, {status: 400});
+        }
+
+        const screenshots = await Screenshot.find({sessionId: sessionId}).sort({timestamp: 1});
 
         if (!screenshots || screenshots.length === 0) {
-            return NextResponse.json({ screenshots: [], summary: 'No screenshots found.' });
+            return NextResponse.json({screenshots: [], summary: 'No screenshots found for this session.'});
         }
 
         const summary = await generateSummary(screenshots);
 
-        return NextResponse.json({ screenshots: screenshots, summary: summary });
+        return NextResponse.json({screenshots: screenshots, summary: summary});
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("MongoDB/OpenAI error:", error);
-        return NextResponse.json({ screenshots: [], summary: 'Error: ' + error.message }, { status: 500 });
+        return NextResponse.json({screenshots: [], summary: 'Error: ' + error.message}, {status: 500});
     }
 }
 
-async function generateSummary(screenshots: ScreenshotType[]): Promise<string> {
+async function generateSummary(screenshots: ScreenshotType[]) {
     if (!screenshots || screenshots.length === 0) {
         return "No screenshots available to generate a summary.";
     }
 
-    const messages: GPT4VisionMessage[] = [
-        {
-            role: "system",
-            content: "You are an expert at summarizing user activity based on screenshots and metadata.",
-        },
-    ];
+    const screenshotData = screenshots.map((s: ScreenshotType) => ({
+        timestamp: s.timestamp,
+        url: s.url,
+        sessionId: s.sessionId,
+    }));
 
-    for (const screenshot of screenshots) {
-        try {
-            const base64Image = await imageToBase64(screenshot.url);
-            const content: GPT4VisionContent[] = [
-                { type: "text", text: `Analyze this screenshot (session ID: ${screenshot.sessionId}, timestamp: ${screenshot.timestamp}). Describe what the user is doing.` },
-                { type: "image_url", image_url: { url: base64Image, detail: "low" } },
-            ];
-
-            messages.push({
-                role: "user",
-                content: content,
-            });
-        } catch (imageError) {
-            console.error(`Failed to convert image ${screenshot.url} to base64:`, imageError);
-            messages.push({
-                role: "user",
-                content: `Failed to analyze screenshot due to an error. Session ID: ${screenshot.sessionId}, timestamp: ${screenshot.timestamp}.`,
-            });
-        }
-    }
-
-    messages.push({
-        role: "user",
-        content: "Based on these screenshots and any available descriptions, provide a concise summary of the user's overall activity.",
-    });
+    const prompt = `You are a highly skilled analyst tasked with summarizing a user's activity based on a series of screenshots. Your summaries must be comprehensive, detailed, and insightful. For each screenshot, provide a brief analysis of what the user appears to be doing at that specific timestamp, considering the visual content of the screenshot, the timestamp, and the session ID. Then, synthesize these individual analyses into a cohesive and thorough summary of the user's overall activity during the session. Ensure that the summary covers key actions, patterns, and any notable observations. Here are the screenshots (timestamp, URL, and session ID): ${JSON.stringify(screenshotData)}. Be as detailed and comprehensive as possible, while remaining concise and focused on the most important aspects of the user's activity.`;
 
     try {
         const completion = await openai.chat.completions.create({
-            model: MODEL,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            messages: messages as any,
-            max_tokens: 500,
+            model: "gpt-4o",
+            messages: [{role: "user", content: prompt}],
+            max_tokens: 1500,
         });
 
         const summary = completion.choices[0].message.content;
-        return summary || "No summary generated"; // Ensure a string is always returned
+        return summary;
     } catch (error) {
         console.error("OpenAI error:", error);
         return "Error generating AI summary.";
