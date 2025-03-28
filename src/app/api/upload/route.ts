@@ -1,59 +1,67 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { writeFile } from 'fs/promises';
-import {getSession} from "next-auth/react"
+import dbConnect from '../../lib/mongodb';
+import Screenshot from '../../models/Screenshot';
+import { CloudinaryResponseType, ScreenshotCreateType } from '../../models/Screenshot';
+import mongoose from "mongoose";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-//In memory storage (Replace with your database)
-const screenshots:any = []
-
 export async function POST(request: Request) {
-  const data = await request.formData();
-  const file: File | null = data.get('image') as unknown as File
-  const sessionId = data.get('sessionId') as string;
-  const email = data.get('email') as string;
+    const data = await request.formData();
+    const file: File | null = data.get('image') as unknown as File;
+    const sessionId = data.get('sessionId') as string;
 
+    if (!file) {
+        return NextResponse.json({ success: false });
+    }
 
-  if (!file) {
-    return NextResponse.json({ success: false })
-  }
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-
-    // Upload the image to Cloudinary
     try {
-        const uploadedResponse = await new Promise((resolve, reject) => {
+        const uploadedResponse = await new Promise<CloudinaryResponseType>((resolve, reject) => {
             cloudinary.uploader.upload_stream({ resource_type: 'image' }, (err, result) => {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve(result);
+                    resolve(result as CloudinaryResponseType);
                 }
             }).end(buffer);
         });
 
-        const timestamp = new Date().toISOString();
+        const imageUrl = uploadedResponse.secure_url;
 
-        //In memory storage (Replace with your database)
-        screenshots.push({
-          email: email,
-          sessionId: sessionId,
-          url: (uploadedResponse as any).secure_url,
-          timestamp: timestamp
-        })
+        // Check if the database connection is established
+        if (mongoose.connection.readyState !== 1) {
+            console.warn("Database connection not established. Attempting to connect...");
+            try {
+                await dbConnect(); // Attempt to connect
+                console.log("Database connection established successfully.");
+            } catch (dbError) {
+                console.error("Error connecting to database:", dbError);
+                return NextResponse.json({ success: false, error: "Failed to connect to database" }, { status: 500 });
+            }
+        }
 
 
-        return NextResponse.json({ success: true, imageUrl: (uploadedResponse as any).secure_url });
+        const newScreenshotData: ScreenshotCreateType = {
+            sessionId: sessionId,
+            url: imageUrl,
+            timestamp: new Date(),
+        };
+
+        const newScreenshot = new Screenshot(newScreenshotData);
+        await newScreenshot.save();
+
+        return NextResponse.json({ success: true, imageUrl: imageUrl });
     } catch (error) {
-        console.error("Cloudinary upload error:", error);
+        console.error("Cloudinary/MongoDB error:", error);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return NextResponse.json({ success: false, error: (error as any).message }, { status: 500 });
     }
-
-
 }
