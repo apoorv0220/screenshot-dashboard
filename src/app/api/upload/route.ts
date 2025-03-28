@@ -36,11 +36,10 @@ export async function POST(request: Request) {
 
         const imageUrl = uploadedResponse.secure_url;
 
-        // Check if the database connection is established
         if (mongoose.connection.readyState !== 1) {
             console.warn("Database connection not established. Attempting to connect...");
             try {
-                await dbConnect(); // Attempt to connect
+                await dbConnect();
                 console.log("Database connection established successfully.");
             } catch (dbError) {
                 console.error("Error connecting to database:", dbError);

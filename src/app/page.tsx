@@ -1,15 +1,21 @@
 "use client";
 import { useEffect, useState } from 'react';
-import ScreenshotList from './components/ScreenshotList';
 import Summary from './components/Summary';
 import { useSession, signIn, signOut } from "next-auth/react"
 import { useRouter } from 'next/navigation';
 import SessionList from "./components/SessionList";
 import { ScreenshotType } from './models/Screenshot';
 
+interface AnalysisItem {
+    url: string;
+    timestamp: string;
+    analysis: string;
+}
+
 export default function Home() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [screenshots, setScreenshots] = useState<ScreenshotType[]>([]);
-    const [summary, setSummary] = useState<string>('');
+    const [summary, setSummary] = useState<AnalysisItem[]>([]);
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { data: session } = useSession();
@@ -23,6 +29,8 @@ export default function Home() {
 
     const handleSessionSelect = (sessionId: string) => {
         setSelectedSessionId(sessionId);
+        setSummary([])
+        setScreenshots([]);
     };
 
     const handleGenerateSummary = async () => {
@@ -32,8 +40,7 @@ export default function Home() {
         try {
             const response = await fetch(`/api/summary?sessionId=${selectedSessionId}`);
             const result = await response.json();
-            setSummary(result.summary || '');
-            setScreenshots(result.screenshots || []);
+            setSummary(result.summary || []);
         } finally {
             setIsLoading(false);
         }
@@ -57,7 +64,6 @@ export default function Home() {
                 {selectedSessionId && (
                     <div className="w-full max-w-4xl">
                         <h2 className="text-2xl font-semibold mb-4 text-teal-300">Session: {selectedSessionId}</h2>
-                        <ScreenshotList screenshots={screenshots} />
                         <button
                             onClick={handleGenerateSummary}
                             className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200"

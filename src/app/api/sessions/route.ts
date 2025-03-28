@@ -13,13 +13,11 @@ export async function GET(request: Request) {
 
         const skip = (page - 1) * limit;
 
-        // Get all unique session IDs
         const uniqueSessionIds = await Screenshot.distinct('sessionId');
 
         const totalSessions = uniqueSessionIds.length;
         const totalPages = Math.ceil(totalSessions / limit);
 
-        // Paginate the session IDs
         const paginatedSessionIds = uniqueSessionIds.slice(skip, skip + limit);
 
         const sessions = [];
