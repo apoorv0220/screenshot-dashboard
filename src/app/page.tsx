@@ -1,58 +1,71 @@
 "use client";
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 import ScreenshotList from './components/ScreenshotList';
 import Summary from './components/Summary';
-import {useSession, signIn, signOut} from "next-auth/react"
-import {useRouter} from 'next/navigation';
+import { useSession, signIn, signOut } from "next-auth/react"
+import { useRouter } from 'next/navigation';
+import SessionList from "./components/SessionList";
 import { ScreenshotType } from './models/Screenshot';
 
 export default function Home() {
     const [screenshots, setScreenshots] = useState<ScreenshotType[]>([]);
     const [summary, setSummary] = useState<string>('');
+    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const {data: session} = useSession();
+    const { data: session } = useSession();
     const router = useRouter();
 
     useEffect(() => {
-        async function fetchData() {
-            if (session) {
-                setIsLoading(true);
-                try {
-                    const data = await fetch(`/api/summary`);
-                    const result = await data.json();
-                    setScreenshots(result.screenshots || []);
-                    setSummary(result.summary || '');
-                } finally {
-                    setIsLoading(false);
-                }
-
-            } else {
-                router.push("/");
-            }
+        if (!session) {
+            router.push("/");
         }
-
-        fetchData();
     }, [session, router]);
+
+    const handleSessionSelect = (sessionId: string) => {
+        setSelectedSessionId(sessionId);
+    };
+
+    const handleGenerateSummary = async () => {
+        if (!selectedSessionId) return;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/summary?sessionId=${selectedSessionId}`);
+            const result = await response.json();
+            setSummary(result.summary || '');
+            setScreenshots(result.screenshots || []);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (session) {
         return (
-            <div className="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center justify-around py-8 px-4">
-                <div className="flex justify-between w-[98vw]">
-                    <p className="text-2xl font-bold pb-4 text-teal-500">Signed in as {session?.user?.email}</p>
-                    <button
-                        onClick={() => signOut()}
-                        className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 mb-2 rounded focus:outline-none focus:shadow-outline transition duration-200"
-                    >
-                        Sign out
-                    </button>
-                </div>
+            <div className="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center py-8 px-4">
+                <p>Signed in as {session?.user?.email}</p>
+                <button
+                    onClick={() => signOut()}
+                    className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200 mb-4"
+                >
+                    Sign out
+                </button>
+
                 <h1 className="text-4xl font-bold mb-4 text-teal-500">Screenshot Dashboard</h1>
-                {isLoading ? (
-                    <div className="text-teal-500 animate-spin text-4xl">Loading...</div>
-                ) : (
-                    <div className="border-teal-100 border-2 p-2">
-                        <ScreenshotList screenshots={screenshots}/>
-                        <Summary summary={summary}/>
+
+                <SessionList onSessionSelect={handleSessionSelect} />
+
+                {selectedSessionId && (
+                    <div className="w-full max-w-4xl">
+                        <h2 className="text-2xl font-semibold mb-4 text-teal-300">Session: {selectedSessionId}</h2>
+                        <ScreenshotList screenshots={screenshots} />
+                        <button
+                            onClick={handleGenerateSummary}
+                            className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Generating Summary..." : "Generate Summary"}
+                        </button>
+                        <Summary summary={summary} />
                     </div>
                 )}
             </div>
