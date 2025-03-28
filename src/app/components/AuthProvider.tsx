@@ -2,6 +2,14 @@
 
 import { SessionProvider } from "next-auth/react";
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  return (
+    <SessionProvider refetchInterval={600 * 1000} refetchOnWindowFocus={false}>
+      {children}
+    </SessionProvider>
+  );
 }
