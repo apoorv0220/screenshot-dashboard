@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Screenshot Dashboard
 
-## Getting Started
+This is a Next.js web application that allows users to view screenshots uploaded from a desktop application, grouped by session, and generate AI-powered summaries of those sessions.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   **Next.js:** A React framework for building server-rendered and statically generated web applications.
+*   **React:** A JavaScript library for building user interfaces.
+*   **TypeScript:** A superset of JavaScript that adds static typing.
+*   **Tailwind CSS:** A utility-first CSS framework for rapidly styling HTML elements.
+*   **NextAuth.js:** An authentication library for Next.js that supports various authentication providers (in this case, Google OAuth).
+*   **Mongoose:** An Object Data Modeling (ODM) library for MongoDB and Node.js.
+*   **MongoDB Atlas:** A cloud-based MongoDB service.
+*   **OpenAI API:** An API for accessing OpenAI's language models (GPT-4o) for generating summaries.
+*   **Cloudinary:** Cloud image storage and management.
+*   **jose:** For verifying JSON Web Tokens (JWTs)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Libraries Used
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+*   `next`: Core Next.js framework.
+*   `react`, `react-dom`: Core React libraries.
+*   `typescript`: TypeScript language support.
+*   `tailwindcss`, `postcss`, `autoprefixer`: Tailwind CSS and its dependencies.
+*   `next-auth`: Authentication library.
+*   `mongoose`: MongoDB ODM.
+*   `cloudinary`: Cloudinary API for image storage.
+*   `openai`: OpenAI API for generating summaries.
+*   `jose`: JWT verification
+*   `axios`: For making HTTP requests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Installation
 
-## Learn More
+1.  **Clone the repository:**
 
-To learn more about Next.js, take a look at the following resources:
+    ```bash
+    git clone <repository-url>
+    cd screenshot-dashboard
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2.  **Install dependencies:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
 
-## Deploy on Vercel
+3.  **Set up environment variables:**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    *   Create a `.env.local` file in the root directory of the project.
+    *   Add the following environment variables to the `.env.local` file:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+        ```
+        GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+        GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+
+        CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_CLOUD_NAME
+        CLOUDINARY_API_KEY=YOUR_CLOUDINARY_API_KEY
+        CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_API_SECRET
+
+        OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+
+        NEXTAUTH_SECRET=A_VERY_LONG_RANDOM_STRING_GENERATED_BY_OPENSSL
+        NEXTAUTH_URL=http://localhost:3000
+
+        MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/?retryWrites=true&w=majority
+        ```
+
+    *   Replace the placeholders with your actual API keys and database credentials.
+    *   Generate a secure random string for `NEXTAUTH_SECRET` using `openssl rand -base64 32`.
+
+4.  **Run the development server:**
+
+    ```bash
+    npm run dev
+    # or
+    yarn dev
+    ```
+
+    This will start the Next.js development server on `http://localhost:3000`.
+
+## Usage
+
+1.  **Access the Dashboard:** Open your browser and go to `http://localhost:3000`.
+2.  **Sign in with Google:** Click the "Sign in" button to authenticate with your Google account.
+3.  **View Sessions:** The dashboard will display a list of sessions, with a few screenshots for each.
+4.  **Select a Session:** Click on a session card to select it.
+5.  **Generate Summary:** Click the "Generate Summary" button to generate an AI-powered summary of the selected session.
+6.  **View Screenshots and Summary:** The screenshots and summary will be displayed on the page.
+
+To checkkout live demo follow athe above usage instructions for: [screenshot-dashboard.onrender.com]
+
+## Deployment
+
+To deploy this Next.js app to Vercel:
+
+1.  Create a Vercel account (if you don't have one).
+2.  Install the Vercel CLI: `npm install -g vercel`.
+3.  Run `vercel` in your project directory.
+4.  Follow the prompts to link your project to Vercel.
+5.  Set the necessary environment variables in your Vercel project settings.
+6.  Deploy your application.
+
+To deploy on render create a yaml file and deploy there.
