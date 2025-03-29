@@ -6,7 +6,6 @@ const nextConfig = {
   images: {
     domains: ['res.cloudinary.com'],
   },
-  maxDuration: 120,
 };
 
 module.exports = nextConfig;
