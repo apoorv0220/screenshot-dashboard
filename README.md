@@ -1,4 +1,4 @@
-# Screenshot Dashboard
+# Screenshot Dashboard [(https://screenshot-dashboard.onrender.com/)]
 
 This is a Next.js web application that allows users to view screenshots uploaded from a desktop application, grouped by session, and generate AI-powered summaries of those sessions.
 
