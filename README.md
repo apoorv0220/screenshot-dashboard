@@ -13,20 +13,6 @@ This is a Next.js web application that allows users to view screenshots uploaded
 *   **MongoDB Atlas:** A cloud-based MongoDB service.
 *   **OpenAI API:** An API for accessing OpenAI's language models (GPT-4o) for generating summaries.
 *   **Cloudinary:** Cloud image storage and management.
-*   **jose:** For verifying JSON Web Tokens (JWTs)
-
-## Libraries Used
-
-*   `next`: Core Next.js framework.
-*   `react`, `react-dom`: Core React libraries.
-*   `typescript`: TypeScript language support.
-*   `tailwindcss`, `postcss`, `autoprefixer`: Tailwind CSS and its dependencies.
-*   `next-auth`: Authentication library.
-*   `mongoose`: MongoDB ODM.
-*   `cloudinary`: Cloudinary API for image storage.
-*   `openai`: OpenAI API for generating summaries.
-*   `jose`: JWT verification
-*   `axios`: For making HTTP requests
 
 ## Installation
 
