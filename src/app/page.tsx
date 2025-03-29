@@ -1,3 +1,4 @@
+// pages/index.tsx
 "use client";
 import { useEffect, useState } from "react";
 import Summary from "./components/Summary";
@@ -39,13 +40,37 @@ export default function Home() {
     if (!selectedSessionId) return;
 
     setIsLoading(true);
+    setSummary([]); // Clear previous summary
+
     try {
-      const response = await fetch(
+      const eventSource = new EventSource(
         `/api/summary?sessionId=${selectedSessionId}`
       );
-      const result = await response.json();
-      setSummary(result.summary || []);
-    } finally {
+
+      eventSource.onmessage = (event) => {
+        const parsedData = JSON.parse(event.data);
+
+        if (parsedData.type === "analysis") {
+          // Append new analysis item to the summary
+          setSummary((prevSummary) => [...prevSummary, parsedData.data]);
+        } else if (parsedData.type === "error") {
+          console.error("Error from server:", parsedData.data);
+          // Handle error (e.g., display an error message)
+        } else if (parsedData.type === "done") {
+          // Streaming is complete
+          eventSource.close();
+          setIsLoading(false);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("EventSource failed:", error);
+        eventSource.close();
+        setIsLoading(false);
+        // Handle the error appropriately
+      };
+    } catch (error) {
+      console.error("Failed to connect to event stream:", error);
       setIsLoading(false);
     }
   };
