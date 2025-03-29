@@ -1,4 +1,4 @@
-# Screenshot Dashboard [Live LInk](https://screenshot-dashboard-gules.vercel.app/)
+# Screenshot Dashboard [Live Link](https://screenshot-dashboard-gules.vercel.app/)
 
 This is a Next.js web application that allows users to view screenshots uploaded from a desktop application, grouped by session, and generate AI-powered summaries of those sessions.
 
