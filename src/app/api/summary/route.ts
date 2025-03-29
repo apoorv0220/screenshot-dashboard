@@ -1,10 +1,11 @@
+// app/api/summary/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import dbConnect from "../../lib/mongodb";
 import Screenshot from "../../models/Screenshot";
 import { ScreenshotType } from "../../models/Screenshot";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../[...nextauth]/route";
+import { authOptions } from "../../lib/auth";
 import axios from "axios";
 
 const openai = new OpenAI({
@@ -13,6 +14,7 @@ const openai = new OpenAI({
 
 const MODEL = "gpt-4o";
 
+// Define the content type for GPT-4o Vision API
 type GPT4VisionContent =
   | { type: "text"; text: string }
   | {
@@ -20,6 +22,7 @@ type GPT4VisionContent =
       image_url: { url: string; detail: "low" | "high" | "auto" };
     };
 
+// Define the message type for GPT-4o Vision API
 interface GPT4VisionMessage {
   role: "system" | "user";
   content: string | GPT4VisionContent[];
@@ -73,7 +76,7 @@ export async function GET(request: Request) {
     const summary = await generateSummary(screenshots);
 
     return NextResponse.json({ screenshots: screenshots, summary: summary });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("MongoDB/OpenAI error:", error);
     return NextResponse.json(
@@ -134,7 +137,7 @@ async function generateSummary(
           completion.choices[0].message.content || "No analysis generated";
         analysisItems.push({
           url: screenshot.url,
-          timestamp: screenshot.timestamp.toISOString(),
+          timestamp: screenshot.timestamp.toISOString(), // Convert to string
           analysis: analysis,
         });
       } catch (analysisError) {
@@ -144,7 +147,7 @@ async function generateSummary(
         );
         analysisItems.push({
           url: screenshot.url,
-          timestamp: screenshot.timestamp.toISOString(),
+          timestamp: screenshot.timestamp.toISOString(), // Convert to string
           analysis: `Failed to analyze screenshot due to an error.`,
         });
       }
@@ -155,7 +158,7 @@ async function generateSummary(
       );
       analysisItems.push({
         url: screenshot.url,
-        timestamp: screenshot.timestamp.toISOString(),
+        timestamp: screenshot.timestamp.toISOString(), // Convert to string
         analysis: `Failed to analyze screenshot due to an error.`,
       });
     }
