@@ -1,4 +1,4 @@
-import { Schema, model, models, Document, Model } from 'mongoose';
+import { Schema, model, models, Document, Model } from "mongoose";
 
 interface ScreenshotDocument extends Document {
   sessionId: string;
@@ -13,9 +13,8 @@ interface ScreenshotCreateDocument {
 }
 
 interface CloudinaryResponse {
-    secure_url: string;
+  secure_url: string;
 }
-
 
 const ScreenshotSchema = new Schema({
   sessionId: {
@@ -32,7 +31,9 @@ const ScreenshotSchema = new Schema({
   },
 });
 
-const ScreenshotModel: Model<ScreenshotDocument> = models.Screenshot || model<ScreenshotDocument>('Screenshot', ScreenshotSchema);
+const ScreenshotModel: Model<ScreenshotDocument> =
+  models.Screenshot ||
+  model<ScreenshotDocument>("Screenshot", ScreenshotSchema);
 
 export type ScreenshotType = ScreenshotDocument;
 export type CloudinaryResponseType = CloudinaryResponse;
