@@ -17,6 +17,8 @@ interface GPT4VisionMessage {
   content: string;
 }
 
+export const maxDuration = 90;
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
