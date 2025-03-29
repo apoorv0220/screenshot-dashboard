@@ -1,4 +1,3 @@
-// pages/index.tsx
 "use client";
 import { useEffect, useState } from "react";
 import Summary from "./components/Summary";
@@ -6,6 +5,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SessionList from "./components/SessionList";
 import { ScreenshotType } from "./models/Screenshot";
+import ReactMarkdown from "react-markdown"
 
 interface AnalysisItem {
   url: string;
@@ -21,6 +21,7 @@ export default function Home() {
     null
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [overallConclusion, setOverallConclusion] = useState<string | null>(null); // Add conclusion state
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -34,13 +35,15 @@ export default function Home() {
     setSelectedSessionId(sessionId);
     setSummary([]);
     setScreenshots([]);
+    setOverallConclusion(null);
   };
 
   const handleGenerateSummary = async () => {
     if (!selectedSessionId) return;
 
     setIsLoading(true);
-    setSummary([]); // Clear previous summary
+    setSummary([]);
+    setOverallConclusion(null);
 
     try {
       const eventSource = new EventSource(
@@ -51,13 +54,12 @@ export default function Home() {
         const parsedData = JSON.parse(event.data);
 
         if (parsedData.type === "analysis") {
-          // Append new analysis item to the summary
           setSummary((prevSummary) => [...prevSummary, parsedData.data]);
+        } else if (parsedData.type === "conclusion") {
+          setOverallConclusion(parsedData.data);
         } else if (parsedData.type === "error") {
           console.error("Error from server:", parsedData.data);
-          // Handle error (e.g., display an error message)
         } else if (parsedData.type === "done") {
-          // Streaming is complete
           eventSource.close();
           setIsLoading(false);
         }
@@ -67,7 +69,6 @@ export default function Home() {
         console.error("EventSource failed:", error);
         eventSource.close();
         setIsLoading(false);
-        // Handle the error appropriately
       };
     } catch (error) {
       console.error("Failed to connect to event stream:", error);
@@ -108,6 +109,19 @@ export default function Home() {
               {isLoading ? "Generating Summary..." : "Generate Summary"}
             </button>
             <Summary summary={summary} />
+
+            {overallConclusion && (
+              <div className="mt-4">
+                <h3 className="text-xl font-semibold mb-2 text-teal-300">
+                  Overall Conclusion:
+                </h3>
+                <div className="p-4 border border-gray-700 rounded-md bg-gray-800 shadow-md text-gray-300">
+                  <ReactMarkdown>
+                    {overallConclusion}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

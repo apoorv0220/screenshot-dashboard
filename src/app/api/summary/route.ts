@@ -84,7 +84,7 @@ async function generateAnalysis(screenshot: ScreenshotType): Promise<string> {
   }
 }
 
-export const maxDuration = 60
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -134,6 +134,8 @@ export async function GET(request: Request) {
 
     sendData(JSON.stringify({ type: "start" }));
 
+    const analysisItems: AnalysisItem[] = [];
+
     for (const screenshot of screenshots) {
       try {
         const analysis = await generateAnalysis(screenshot);
@@ -143,6 +145,8 @@ export async function GET(request: Request) {
           timestamp: screenshot.timestamp.toISOString(),
           analysis: analysis,
         };
+
+        analysisItems.push(analysisItem);
         sendData(JSON.stringify({ type: "analysis", data: analysisItem }));
       } catch (error) {
         console.error(
@@ -158,6 +162,19 @@ export async function GET(request: Request) {
       }
     }
 
+    try {
+      const overallConclusion = await generateOverallConclusion(analysisItems);
+      sendData(JSON.stringify({ type: "conclusion", data: overallConclusion }));
+    } catch (conclusionError) {
+      console.error("Failed to generate overall conclusion:", conclusionError);
+      sendData(
+        JSON.stringify({
+          type: "error",
+          data: "Failed to generate overall conclusion.",
+        })
+      );
+    }
+
     sendData(JSON.stringify({ type: "done" }));
     closeStream();
 
@@ -168,12 +185,41 @@ export async function GET(request: Request) {
         Connection: "keep-alive",
       },
     });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("MongoDB/OpenAI error:", error);
     return NextResponse.json(
       { screenshots: [], summary: "Error: " + error.message },
       { status: 500 }
     );
+  }
+}
+
+async function generateOverallConclusion(
+  analysisItems: AnalysisItem[]
+): Promise<string> {
+  if (!analysisItems || analysisItems.length === 0) {
+    return "No analysis items available to generate a conclusion.";
+  }
+
+  const analysisSummary = analysisItems
+    .map((item) => `Timestamp: ${item.timestamp}, Analysis: ${item.analysis}`)
+    .join("\n");
+
+  const prompt = `You have the following analysis items and timestamps:\n${analysisSummary}\n\nBased on this information, provide a meaningful overall conclusion about what the user was doing during this session. Do not simply narrate the analysis items in chronological order. Identify patterns, key activities, and the user's overall goal or focus.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 500,
+    });
+
+    const conclusion =
+      completion.choices[0].message.content || "No conclusion generated";
+    return conclusion;
+  } catch (error) {
+    console.error("OpenAI conclusion error:", error);
+    return "Failed to generate an overall conclusion due to an error.";
   }
 }
