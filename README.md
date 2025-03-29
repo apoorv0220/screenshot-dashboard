@@ -88,7 +88,7 @@ This is a Next.js web application that allows users to view screenshots uploaded
 5.  **Generate Summary:** Click the "Generate Summary" button to generate an AI-powered summary of the selected session.
 6.  **View Screenshots and Summary:** The screenshots and summary will be displayed on the page.
 
-To checkkout live demo follow athe above usage instructions for: [screenshot-dashboard.onrender.com]
+To checkkout live demo follow athe above usage instructions for: (https://screenshot-dashboard.onrender.com/)
 
 ## Deployment
 
