@@ -4,7 +4,7 @@ import dbConnect from "../../lib/mongodb";
 import Screenshot from "../../models/Screenshot";
 import { ScreenshotType } from "../../models/Screenshot";
 import { getServerSession } from "next-auth/next";
-import { getAuthOptions } from "../[...nextauth]/route";
+import { authOptions } from "../[...nextauth]/route";
 import axios from "axios";
 
 const openai = new OpenAI({
@@ -37,7 +37,7 @@ async function imageToBase64(imageUrl: string): Promise<string> {
 }
 
 export async function GET(request: Request) {
-  const session = await getServerSession(getAuthOptions());
+  const session = await getServerSession(authOptions);
 
   if (!session) {
     return NextResponse.json(
