@@ -39,6 +39,8 @@ async function imageToBase64(imageUrl: string): Promise<string> {
   }
 }
 
+export const maxDuration = 120;
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
