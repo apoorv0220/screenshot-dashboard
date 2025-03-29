@@ -84,6 +84,8 @@ async function generateAnalysis(screenshot: ScreenshotType): Promise<string> {
   }
 }
 
+export const maxDuration = 60
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
