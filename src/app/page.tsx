@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SessionList from "./components/SessionList";
 import { ScreenshotType } from "./models/Screenshot";
+import ReactMarkdown from "react-markdown"
 
 interface AnalysisItem {
   url: string;
@@ -20,6 +21,7 @@ export default function Home() {
     null
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [overallConclusion, setOverallConclusion] = useState<string | null>(null); // Add conclusion state
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -33,19 +35,43 @@ export default function Home() {
     setSelectedSessionId(sessionId);
     setSummary([]);
     setScreenshots([]);
+    setOverallConclusion(null);
   };
 
   const handleGenerateSummary = async () => {
     if (!selectedSessionId) return;
 
     setIsLoading(true);
+    setSummary([]);
+    setOverallConclusion(null);
+
     try {
-      const response = await fetch(
+      const eventSource = new EventSource(
         `/api/summary?sessionId=${selectedSessionId}`
       );
-      const result = await response.json();
-      setSummary(result.summary || []);
-    } finally {
+
+      eventSource.onmessage = (event) => {
+        const parsedData = JSON.parse(event.data);
+
+        if (parsedData.type === "analysis") {
+          setSummary((prevSummary) => [...prevSummary, parsedData.data]);
+        } else if (parsedData.type === "conclusion") {
+          setOverallConclusion(parsedData.data);
+        } else if (parsedData.type === "error") {
+          console.error("Error from server:", parsedData.data);
+        } else if (parsedData.type === "done") {
+          eventSource.close();
+          setIsLoading(false);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("EventSource failed:", error);
+        eventSource.close();
+        setIsLoading(false);
+      };
+    } catch (error) {
+      console.error("Failed to connect to event stream:", error);
       setIsLoading(false);
     }
   };
@@ -83,6 +109,19 @@ export default function Home() {
               {isLoading ? "Generating Summary..." : "Generate Summary"}
             </button>
             <Summary summary={summary} />
+
+            {overallConclusion && (
+              <div className="mt-4">
+                <h3 className="text-xl font-semibold mb-2 text-teal-300">
+                  Overall Conclusion:
+                </h3>
+                <div className="p-4 border border-gray-700 rounded-md bg-gray-800 shadow-md text-gray-300">
+                  <ReactMarkdown>
+                    {overallConclusion}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
