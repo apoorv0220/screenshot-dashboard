@@ -1,4 +1,3 @@
-// app/api/summary/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import dbConnect from "../../lib/mongodb";
@@ -6,7 +5,6 @@ import Screenshot from "../../models/Screenshot";
 import { ScreenshotType } from "../../models/Screenshot";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../lib/auth";
-import axios from "axios";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,29 +12,9 @@ const openai = new OpenAI({
 
 const MODEL = "gpt-4o";
 
-// Define the content type for GPT-4o Vision API
-type GPT4VisionContent =
-  | { type: "text"; text: string }
-  | {
-      type: "image_url";
-      image_url: { url: string; detail: "low" | "high" | "auto" };
-    };
-
-// Define the message type for GPT-4o Vision API
 interface GPT4VisionMessage {
   role: "system" | "user";
-  content: string | GPT4VisionContent[];
-}
-
-async function imageToBase64(imageUrl: string): Promise<string> {
-  try {
-    const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
-    const buffer = Buffer.from(response.data, "binary");
-    return `data:image/png;base64,${buffer.toString("base64")}`;
-  } catch (error) {
-    console.error("Error converting image to base64:", error);
-    throw error;
-  }
+  content: string;
 }
 
 export async function GET(request: Request) {
@@ -99,69 +77,86 @@ async function generateSummary(
     return [];
   }
 
+  const analysisItems: AnalysisItem[] = [];
+
+  const batchPrompt = `You are an expert at analyzing screenshots and providing insightful summaries of user activity. I will provide you with a list of screenshots from a user session. Provide a summary for each screenshot. Then provide a detailed summary and overall conclusion.The overall conclusion must be in the following format:\n\n"overall summary of the user's activity" \n\nDo not include any other text or formatting outside the conclusion and the analysis.`;
   const messages: GPT4VisionMessage[] = [
     {
       role: "system",
-      content:
-        "You are an expert at analyzing screenshots and providing insightful summaries of user activity. Provide a summary of what is going on in the image",
+      content: batchPrompt,
     },
   ];
-
-  const analysisItems: AnalysisItem[] = [];
-
+  let promptText = "Here are the screenshots:\n";
   for (const screenshot of screenshots) {
+    promptText += `- Screenshot URL: ${screenshot.url}, Timestamp: ${screenshot.timestamp}\n`;
+  }
+
+  messages.push({
+    role: "user",
+    content: promptText,
+  });
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: MODEL,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: messages as any,
+      max_tokens: 16000,
+    });
+    const analysis =
+      completion.choices[0].message.content || "No analysis generated";
+
     try {
-      const base64Image = await imageToBase64(screenshot.url);
-      const content: GPT4VisionContent[] = [
-        {
-          type: "text",
-          text: `Analyze this screenshot (session ID: ${screenshot.sessionId}, timestamp: ${screenshot.timestamp}). Describe what the user is doing.`,
-        },
-        { type: "image_url", image_url: { url: base64Image, detail: "low" } },
-      ];
+      const parsedAnalysis = analysis.split('\n');
 
-      messages.push({
-        role: "user",
-        content: content,
-      });
+      if (parsedAnalysis.length >= screenshots.length) {
+        for (let i = 0; i < screenshots.length; i++) {
+          analysisItems.push({
+            url: screenshots[i].url,
+            timestamp: screenshots[i].timestamp.toISOString(),
+            analysis: parsedAnalysis[i] || "No analysis generated",
+          });
+        }
+         if (parsedAnalysis.length > screenshots.length)
+         {
+           analysisItems.push({
+                      url: '',
+                      timestamp: '',
+                      analysis: "conclusion: " + parsedAnalysis[parsedAnalysis.length -1] || "Failed to analyze screenshot due to parsing error.",
+                  });
 
-      try {
-        const completion = await openai.chat.completions.create({
-          model: MODEL,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          messages: messages as any,
-          max_tokens: 500,
-        });
-
-        const analysis =
-          completion.choices[0].message.content || "No analysis generated";
-        analysisItems.push({
-          url: screenshot.url,
-          timestamp: screenshot.timestamp.toISOString(), // Convert to string
-          analysis: analysis,
-        });
-      } catch (analysisError) {
-        console.error(
-          `OpenAI analysis error for ${screenshot.url}:`,
-          analysisError
+          }
+      } else {
+        console.warn(
+          "Parsed analysis length does not match screenshots length."
         );
+        screenshots.forEach((screenshot) =>
+          analysisItems.push({
+            url: screenshot.url,
+            timestamp: screenshot.timestamp.toISOString(),
+            analysis: "Failed to analyze screenshot due to parsing error.",
+          })
+        );
+      }
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", parseError);
+      screenshots.forEach((screenshot) =>
         analysisItems.push({
           url: screenshot.url,
-          timestamp: screenshot.timestamp.toISOString(), // Convert to string
-          analysis: `Failed to analyze screenshot due to an error.`,
-        });
-      }
-    } catch (imageError) {
-      console.error(
-        `Failed to convert image ${screenshot.url} to base64:`,
-        imageError
+          timestamp: screenshot.timestamp.toISOString(),
+          analysis: "Failed to analyze screenshot due to parsing error.",
+        })
       );
+    }
+  } catch (analysisError) {
+    console.error(`OpenAI analysis error:`, analysisError);
+    screenshots.forEach((screenshot) =>
       analysisItems.push({
         url: screenshot.url,
-        timestamp: screenshot.timestamp.toISOString(), // Convert to string
-        analysis: `Failed to analyze screenshot due to an error.`,
-      });
-    }
+        timestamp: screenshot.timestamp.toISOString(),
+        analysis: "Failed to analyze screenshot due to parsing error.",
+      })
+    );
   }
 
   return analysisItems;
