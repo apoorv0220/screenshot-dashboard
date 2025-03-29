@@ -48,9 +48,9 @@ async function generateAnalysis(screenshot: ScreenshotType): Promise<string> {
     const content: GPT4VisionContent[] = [
       {
         type: "text",
-        text: `Analyze this screenshot (session ID: ${screenshot.sessionId}, timestamp: ${screenshot.timestamp}). Describe what the user is doing.`,
+        text: `Analyze this screenshot (session ID: ${screenshot.sessionId}, timestamp: ${screenshot.timestamp}). Analyse what the user is doing.`,
       },
-      { type: "image_url", image_url: { url: base64Image, detail: "low" } },
+      { type: "image_url", image_url: { url: base64Image, detail: "auto" } },
     ];
 
     const messages: GPT4VisionMessage[] = [
@@ -69,7 +69,7 @@ async function generateAnalysis(screenshot: ScreenshotType): Promise<string> {
       model: MODEL,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       messages: messages as any,
-      max_tokens: 1500,
+      max_tokens: 750,
       stream: true,
     });
 
@@ -90,108 +90,108 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    return NextResponse.json(
-      { screenshots: [], summary: "Unauthorized" },
-      { status: 401 }
-    );
+      return NextResponse.json(
+          {screenshots: [], summary: "Unauthorized"},
+          {status: 401}
+      );
   }
 
   try {
-    await dbConnect();
+      await dbConnect();
 
-    const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get("sessionId");
+      const {searchParams} = new URL(request.url);
+      const sessionId = searchParams.get("sessionId");
 
-    if (!sessionId) {
-      return NextResponse.json(
-        { screenshots: [], summary: "No sessionId provided." },
-        { status: 400 }
-      );
-    }
-
-    const screenshots = await Screenshot.find({ sessionId: sessionId }).sort({
-      timestamp: 1,
-    });
-
-    if (!screenshots || screenshots.length === 0) {
-      return NextResponse.json({
-        screenshots: [],
-        summary: "No screenshots found for this session.",
-      });
-    }
-
-    const transformStream = new TransformStream();
-    const writer = transformStream.writable.getWriter();
-    const encoder = new TextEncoder();
-
-    const sendData = (data: string) => {
-      writer.write(encoder.encode(`data: ${data}\n\n`));
-    };
-
-    const closeStream = () => {
-      writer.close();
-    };
-
-    sendData(JSON.stringify({ type: "start" }));
-
-    const analysisItems: AnalysisItem[] = [];
-
-    for (const screenshot of screenshots) {
-      try {
-        const analysis = await generateAnalysis(screenshot);
-
-        const analysisItem: AnalysisItem = {
-          url: screenshot.url,
-          timestamp: screenshot.timestamp.toISOString(),
-          analysis: analysis,
-        };
-
-        analysisItems.push(analysisItem);
-        sendData(JSON.stringify({ type: "analysis", data: analysisItem }));
-      } catch (error) {
-        console.error(
-          `Failed to generate summary for screenshot ${screenshot.url}:`,
-          error
-        );
-        sendData(
-          JSON.stringify({
-            type: "error",
-            data: `Failed to analyze screenshot due to an error.`,
-          })
-        );
+      if (!sessionId) {
+          return NextResponse.json(
+              {screenshots: [], summary: "No sessionId provided."},
+              {status: 400}
+          );
       }
-    }
 
-    try {
-      const overallConclusion = await generateOverallConclusion(analysisItems);
-      sendData(JSON.stringify({ type: "conclusion", data: overallConclusion }));
-    } catch (conclusionError) {
-      console.error("Failed to generate overall conclusion:", conclusionError);
-      sendData(
-        JSON.stringify({
-          type: "error",
-          data: "Failed to generate overall conclusion.",
-        })
-      );
-    }
+      const screenshots = await Screenshot.find({sessionId: sessionId}).sort({
+          timestamp: 1
+      });
 
-    sendData(JSON.stringify({ type: "done" }));
-    closeStream();
+      if (!screenshots || screenshots.length === 0) {
+          return NextResponse.json({
+              screenshots: [],
+              summary: "No screenshots found for this session.",
+          });
+      }
 
-    return new NextResponse(transformStream.readable, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformStream = new TransformStream();
+      const writer = transformStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      const sendData = (data: string) => {
+          writer.write(encoder.encode(`data: ${data}\n\n`));
+      };
+
+      const closeStream = () => {
+          writer.close();
+      };
+
+      sendData(JSON.stringify({type: "start"}));
+
+      const analysisItems: AnalysisItem[] = [];
+
+      await Promise.all(screenshots.map(async (screenshot) => {
+          try {
+              const analysis = await generateAnalysis(screenshot);
+
+              const analysisItem: AnalysisItem = {
+                  url: screenshot.url,
+                  timestamp: screenshot.timestamp.toISOString(),
+                  analysis: analysis,
+              };
+
+              analysisItems.push(analysisItem);
+              sendData(JSON.stringify({type: "analysis", data: analysisItem}));
+          } catch (error) {
+              console.error(
+                  `Failed to generate summary for screenshot ${screenshot.url}:`,
+                  error
+              );
+              sendData(
+                  JSON.stringify({
+                      type: "error",
+                      data: `Failed to analyze screenshot due to an error.`,
+                  })
+              );
+          }
+      }));
+
+      try {
+          const overallConclusion = await generateOverallConclusion(analysisItems);
+          sendData(JSON.stringify({type: "conclusion", data: overallConclusion}));
+      } catch (conclusionError) {
+          console.error("Failed to generate overall conclusion:", conclusionError);
+          sendData(
+              JSON.stringify({
+                  type: "error",
+                  data: "Failed to generate overall conclusion.",
+              })
+          );
+      }
+
+      sendData(JSON.stringify({type: "done"}));
+      closeStream();
+
+      return new NextResponse(transformStream.readable, {
+          headers: {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              Connection: "keep-alive",
+          },
+      });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("MongoDB/OpenAI error:", error);
-    return NextResponse.json(
-      { screenshots: [], summary: "Error: " + error.message },
-      { status: 500 }
-    );
+      console.error("MongoDB/OpenAI error:", error);
+      return NextResponse.json(
+          {screenshots: [], summary: "Error: " + error.message},
+          {status: 500}
+      );
   }
 }
 
