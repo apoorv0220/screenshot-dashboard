@@ -1,21 +1,14 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { AuthProvider } from './components/AuthProvider';
-import dbConnect from './lib/mongodb';
+import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Screenshot Dashboard',
-  description: 'Monitor user activity with screenshots and AI summaries.',
+  title: 'Project Insight - Employee Monitoring Dashboard',
+  description: 'Admin dashboard for employee activity and productivity monitoring system',
 }
-
-async function init() {
-  await dbConnect();
-}
-
-init();
 
 export default function RootLayout({
   children,
@@ -28,9 +21,11 @@ export default function RootLayout({
       <meta name="google-site-verification" content="pGKXTHVq-njhtZtqVty6OXr-_XAP_kF0YDZXQPtulDA" />
     </head>
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <div className="min-h-screen bg-gray-100">
+          <Providers>
+            {children}
+          </Providers>
+        </div>
       </body>
     </html>
   )
