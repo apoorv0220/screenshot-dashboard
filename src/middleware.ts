@@ -4,11 +4,11 @@ import { Role } from "@/types/auth";
 
 // Define protected routes and their required roles
 const protectedRoutes = {
-  "/dashboard/users": [Role.ADMIN],
-  "/dashboard/settings": [Role.ADMIN],
-  "/dashboard/reports": [Role.ADMIN, Role.MANAGER],
-  "/dashboard/screenshots": [Role.ADMIN, Role.MANAGER, Role.EMPLOYEE],
-  "/dashboard": [Role.ADMIN, Role.MANAGER, Role.EMPLOYEE],
+  "/dashboard/users": ['ADMIN'],
+  "/dashboard/settings": ['ADMIN'],
+  "/dashboard/reports": ['ADMIN'],
+  "/dashboard/screenshots": ['ADMIN', 'EMPLOYEE'],
+  "/dashboard": ['ADMIN', 'EMPLOYEE'],
 };
 
 export default withAuth(
@@ -18,23 +18,30 @@ export default withAuth(
     const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
     const userRole = token?.role as Role;
 
+    // Handle root path
+    if (req.nextUrl.pathname === "/") {
+      if (isAuth) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+      return NextResponse.redirect(new URL("/auth/login", req.url));
+    }
+
     // Handle auth pages
     if (isAuthPage) {
       if (isAuth) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
-      return null;
+      return NextResponse.next();
     }
 
     // Check if user is authenticated
     if (!isAuth) {
-      let from = req.nextUrl.pathname;
-      if (req.nextUrl.search) {
-        from += req.nextUrl.search;
+      // Only add callbackUrl for protected routes, not for root path
+      if (req.nextUrl.pathname !== "/") {
+        const callbackUrl = encodeURIComponent(req.nextUrl.pathname);
+        return NextResponse.redirect(new URL(`/auth/login?callbackUrl=${callbackUrl}`, req.url));
       }
-      return NextResponse.redirect(
-        new URL(`/auth/login?from=${encodeURIComponent(from)}`, req.url)
-      );
+      return NextResponse.redirect(new URL("/auth/login", req.url));
     }
 
     // Check role-based access
@@ -44,14 +51,19 @@ export default withAuth(
     if (requiredRoles && !requiredRoles.includes(userRole)) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
+
+    return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token }) => !!token,
     },
+    pages: {
+      signIn: "/auth/login",
+    },
   }
 );
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: ["/", "/dashboard/:path*", "/auth/:path*"],
 }; 

@@ -136,7 +136,7 @@ export async function GET(request: Request) {
 
       const analysisItems: AnalysisItem[] = [];
 
-      await Promise.all(screenshots.map(async (screenshot) => {
+      await Promise.all(screenshots.map(async (screenshot: typeof Screenshot) => {
           try {
               const analysis = await generateAnalysis(screenshot);
 

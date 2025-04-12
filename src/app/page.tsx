@@ -1,142 +1,16 @@
-"use client";
-import { useEffect, useState } from "react";
-import Summary from "./components/Summary";
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import SessionList from "./components/SessionList";
-import { ScreenshotType } from "./models/Screenshot";
-import ReactMarkdown from "react-markdown"
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-interface AnalysisItem {
-  url: string;
-  timestamp: string;
-  analysis: string;
-}
+export default async function Home() {
+  const session = await getServerSession(authOptions);
 
-export default function Home() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [screenshots, setScreenshots] = useState<ScreenshotType[]>([]);
-  const [summary, setSummary] = useState<AnalysisItem[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [overallConclusion, setOverallConclusion] = useState<string | null>(null); // Add conclusion state
-  const { data: session } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!session) {
-      router.push("/");
-    }
-  }, [session, router]);
-
-  const handleSessionSelect = (sessionId: string) => {
-    setSelectedSessionId(sessionId);
-    setSummary([]);
-    setScreenshots([]);
-    setOverallConclusion(null);
-  };
-
-  const handleGenerateSummary = async () => {
-    if (!selectedSessionId) return;
-
-    setIsLoading(true);
-    setSummary([]);
-    setOverallConclusion(null);
-
-    try {
-      const eventSource = new EventSource(
-        `/api/summary?sessionId=${selectedSessionId}`
-      );
-
-      eventSource.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data);
-
-        if (parsedData.type === "analysis") {
-          setSummary((prevSummary) => [...prevSummary, parsedData.data]);
-        } else if (parsedData.type === "conclusion") {
-          setOverallConclusion(parsedData.data);
-        } else if (parsedData.type === "error") {
-          console.error("Error from server:", parsedData.data);
-        } else if (parsedData.type === "done") {
-          eventSource.close();
-          setIsLoading(false);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error("EventSource failed:", error);
-        eventSource.close();
-        setIsLoading(false);
-      };
-    } catch (error) {
-      console.error("Failed to connect to event stream:", error);
-      setIsLoading(false);
-    }
-  };
-
-  if (session) {
-    return (
-      <div className="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center py-8 px-4">
-        <p>Signed in as {session?.user?.email}</p>
-        <button
-          onClick={() => signOut()}
-          className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200 mb-4"
-        >
-          Sign out
-        </button>
-
-        <h1 className="text-4xl font-bold mb-4 text-teal-500">
-          Screenshot Dashboard
-        </h1>
-
-        <SessionList
-          onSessionSelect={handleSessionSelect}
-          selectedSessionId={selectedSessionId}
-        />
-
-        {selectedSessionId && (
-          <div className="w-full max-w-4xl">
-            <h2 className="text-2xl font-semibold mb-4 text-teal-300">
-              Session: {selectedSessionId}
-            </h2>
-            <button
-              onClick={handleGenerateSummary}
-              className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200"
-              disabled={isLoading}
-            >
-              {isLoading ? "Generating Summary..." : "Generate Summary"}
-            </button>
-            <Summary summary={summary} />
-
-            {overallConclusion && (
-              <div className="mt-4">
-                <h3 className="text-xl font-semibold mb-2 text-teal-300">
-                  Overall Conclusion:
-                </h3>
-                <div className="p-4 border border-gray-700 rounded-md bg-gray-800 shadow-md text-gray-300">
-                  <ReactMarkdown>
-                    {overallConclusion}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
+  if (!session) {
+    redirect("/auth/login");
+  } else {
+    redirect("/dashboard");
   }
 
-  return (
-    <div className="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center justify-center py-8 px-4">
-      <p>Not signed in </p>
-      <button
-        onClick={() => signIn()}
-        className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200"
-      >
-        Sign in
-      </button>
-    </div>
-  );
+  // This will never be rendered due to redirects above
+  return null;
 }

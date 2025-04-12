@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { Toaster } from 'react-hot-toast';
 
 export default function AuthLayout({
   children,
@@ -54,7 +53,6 @@ export default function AuthLayout({
           </div>
         </div>
       </div>
-      <Toaster position="top-right" />
     </div>
   );
 } 

@@ -68,7 +68,7 @@ This is a Next.js web application that allows users to view screenshots uploaded
 ## Usage
 
 1.  **Access the Dashboard:** Open your browser and go to `http://localhost:3000`.
-2.  **Sign in with Google:** Click the "Sign in" button to authenticate with your Google account.
+2.  **Sign in with Email/Password:** Enter your email and password to authenticate.
 3.  **View Sessions:** The dashboard will display a list of sessions, with a few screenshots for each.
 4.  **Select a Session:** Click on a session card to select it.
 5.  **Generate Summary:** Click the "Generate Summary" button to generate an AI-powered summary of the selected session.

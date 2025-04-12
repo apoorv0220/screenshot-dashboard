@@ -1,68 +1,67 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-      
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Active Users Card */}
-        <div className="rounded-lg bg-white p-6 shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 rounded-md bg-blue-500 p-3">
-              <span className="text-2xl text-white">👥</span>
-            </div>
-            <div className="ml-5">
-              <h3 className="text-sm font-medium text-gray-500">Active Users</h3>
-              <p className="mt-1 text-xl font-semibold text-gray-900">24</p>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Stats Cards */}
+        <div className="overflow-hidden rounded-lg bg-white shadow">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="truncate text-sm font-medium text-gray-500">Total Screenshots</dt>
+                  <dd>
+                    <div className="text-2xl font-semibold text-gray-900">0</div>
+                  </dd>
+                </dl>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Screenshots Today Card */}
-        <div className="rounded-lg bg-white p-6 shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 rounded-md bg-green-500 p-3">
-              <span className="text-2xl text-white">📸</span>
-            </div>
-            <div className="ml-5">
-              <h3 className="text-sm font-medium text-gray-500">Screenshots Today</h3>
-              <p className="mt-1 text-xl font-semibold text-gray-900">1,248</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Productivity Score Card */}
-        <div className="rounded-lg bg-white p-6 shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 rounded-md bg-yellow-500 p-3">
-              <span className="text-2xl text-white">📊</span>
-            </div>
-            <div className="ml-5">
-              <h3 className="text-sm font-medium text-gray-500">Avg. Productivity</h3>
-              <p className="mt-1 text-xl font-semibold text-gray-900">87%</p>
+        <div className="overflow-hidden rounded-lg bg-white shadow">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="truncate text-sm font-medium text-gray-500">Active Users</dt>
+                  <dd>
+                    <div className="text-2xl font-semibold text-gray-900">0</div>
+                  </dd>
+                </dl>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Alerts Card */}
-        <div className="rounded-lg bg-white p-6 shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 rounded-md bg-red-500 p-3">
-              <span className="text-2xl text-white">⚠️</span>
-            </div>
-            <div className="ml-5">
-              <h3 className="text-sm font-medium text-gray-500">Active Alerts</h3>
-              <p className="mt-1 text-xl font-semibold text-gray-900">3</p>
+        <div className="overflow-hidden rounded-lg bg-white shadow">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="truncate text-sm font-medium text-gray-500">Average Time</dt>
+                  <dd>
+                    <div className="text-2xl font-semibold text-gray-900">0h</div>
+                  </dd>
+                </dl>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Activity Section */}
-      <div className="mt-8">
+      {/* Recent Activity */}
+      <div className="mt-12">
         <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
-        <div className="mt-4 rounded-lg bg-white shadow">
+        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow">
           <div className="p-6">
-            <p className="text-sm text-gray-500">Loading activity data...</p>
+            <div className="text-center text-gray-500">No recent activity</div>
           </div>
         </div>
       </div>

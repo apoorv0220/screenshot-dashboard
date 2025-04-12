@@ -8,86 +8,68 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  password      String?
-  role          Role      @default(USER)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  resetTokens   PasswordResetToken[]
+  id                String               @id @default(cuid())
+  name              String?
+  email             String               @unique
+  emailVerified     DateTime?
+  password          String?
+  role              Role                 @default(EMPLOYEE)
+  image             String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  sessions          Session[]
+  resetTokens       PasswordResetToken[]
   verificationToken VerificationToken?
-  screenshots   Screenshot[]
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
+  screenshots       Screenshot[]
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  ipAddress    String?
-  userAgent    String?
-  lastActive   DateTime @default(now())
-  isActive     Boolean  @default(true)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String        @id @default(cuid())
+  userId      String
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
+  status      SessionStatus @default(ACTIVE)
+  screenshots Screenshot[]
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([startedAt])
 }
 
 model PasswordResetToken {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
-  expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Screenshot {
-  id              String   @id @default(cuid())
-  userId          String
-  sessionId       String
-  timestamp       DateTime
-  s3Key           String   @unique
-  platform        String?
+  id               String   @id @default(cuid())
+  userId           String
+  sessionId        String
+  session          Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  timestamp        DateTime
+  s3Key            String   @unique
+  platform         String?
   originalFilename String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Tag              Tag?     @relation(fields: [tagId], references: [id])
+  tagId            String?
 
   @@index([userId])
   @@index([sessionId])
@@ -104,5 +86,10 @@ model Tag {
 
 enum Role {
   ADMIN
-  USER
+  EMPLOYEE
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
 }

@@ -1,67 +1,63 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
-import { compare } from 'bcryptjs';
-import { Role } from '@/types/auth';
+import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email }
         });
 
         if (!user || !user.password) {
-          throw new Error('User not found');
+          return null;
         }
 
-        const isValid = await compare(credentials.password, user.password);
+        const isValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isValid) {
-          throw new Error('Invalid password');
+          return null;
         }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role as Role,
+          role: user.role,
         };
-      },
-    }),
+      }
+    })
   ],
+  pages: {
+    signIn: '/',
+    error: '/auth/error',
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id as string;
-        token.role = user.role as Role;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
+      if (session.user) {
+        (session.user as any).role = token.role;
       }
       return session;
-    },
-  },
-  pages: {
-    signIn: '/auth/login',
-    error: '/auth/error',
+    }
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 }; 
